@@ -1,0 +1,11 @@
+[package]
+name = "glrs"
+version = "0.1.0"
+authors = ["Ryan Troxler <rtroxler@rednovalabs.com>"]
+
+[dependencies]
+rustc-serialize = "*"
+libc = "*"
+
+[lib]
+crate-type = ["dylib"]
