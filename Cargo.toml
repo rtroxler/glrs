@@ -6,6 +6,7 @@ authors = ["Ryan Troxler <rtroxler@rednovalabs.com>"]
 [dependencies]
 rustc-serialize = "*"
 libc = "*"
+chrono = "0.4"
 
 [lib]
 crate-type = ["dylib"]

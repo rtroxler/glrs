@@ -1,5 +1,20 @@
 extern crate libc;
 extern crate rustc_serialize;
+use rustc_serialize::json;
+
+extern crate chrono;
+use chrono::prelude::*;
+
+mod account_map;
+mod transaction;
+
+use transaction::*;
+
+mod usd;
+use usd::USD;
+
+mod general_ledger;
+use general_ledger::GeneralLedger;
 
 #[no_mangle]
 pub extern "C" fn rust_perform(c_ptr: *const libc::c_char) -> *const libc::c_char {
@@ -35,6 +50,8 @@ fn c_ptr_from_string(s: &str) -> *const libc::c_char {
     std::ffi::CString::new(s).unwrap().into_raw()
 }
 
+// How do I handle mixed inputs? ABs and ABIs?
+// Replace this with Transaction::Assessments, etc?
 #[derive(Debug, RustcDecodable)]
 struct InputArg {
     some_integer: i32,
@@ -43,7 +60,7 @@ struct InputArg {
 
 impl InputArg {
     pub fn from_json(json_string: &str) -> InputArg {
-        rustc_serialize::json::decode(json_string).unwrap()
+        json::decode(json_string).unwrap()
     }
 }
 
@@ -56,6 +73,6 @@ struct OutputArg {
 
 impl  OutputArg {
     pub fn to_json(&self) -> String {
-        rustc_serialize::json::encode(self).unwrap()
+        json::encode(self).unwrap()
     }
 }
