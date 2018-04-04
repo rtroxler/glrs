@@ -1,3 +1,4 @@
+// This should be replaced by a legit AccountCode type set
 pub fn accounts_receivable_code(revenue_code: &str) -> String {
     match revenue_code {
         "4000" => String::from("1101"),

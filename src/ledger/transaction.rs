@@ -5,7 +5,7 @@ use usd::USD;
 
 use account_map;
 
-use general_ledger::GeneralLedger;
+use ledger::general_ledger::GeneralLedger;
 
 // Will not work
 // Can't access data without pattern matching it out, which then moves it.
