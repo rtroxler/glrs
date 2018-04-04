@@ -19,11 +19,14 @@ use general_ledger::GeneralLedger;
 #[no_mangle]
 pub extern "C" fn rust_perform(c_ptr: *const libc::c_char) -> *const libc::c_char {
     let string_arg = string_from_c_ptr(c_ptr);
+    println!("{:?}", string_arg);
+
     let arg = InputArg::from_json(&string_arg);
 
     println!("Rust input argument: {:?}", arg);
 
     let result = OutputArg { some_integer: 42, some_string: "the quick brown fox".to_string(), another_string: "jumps over the lazy dog".to_string() };
+    println!("Testing output ... ");
 
     println!("Rust result: {:?}", result);
 
@@ -55,7 +58,8 @@ fn c_ptr_from_string(s: &str) -> *const libc::c_char {
 #[derive(Debug, RustcDecodable)]
 struct InputArg {
     some_integer: i32,
-    some_string: String
+    some_string: String,
+    many_strings: Vec<String>
 }
 
 impl InputArg {
