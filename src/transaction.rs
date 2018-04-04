@@ -15,6 +15,7 @@ use general_ledger::GeneralLedger;
 //Assessment { }
 //}
 
+//#[derive(Debug, RustcDecodable)]
 #[derive(Debug)]
 pub struct Assessment {
     amount: USD,
