@@ -33,9 +33,12 @@ pub struct Ledger {
 }
 
 impl Ledger {
-    pub fn general_ledger(&self) -> GeneralLedger {
-        // TODO
-        GeneralLedger::new()
+    pub fn process_general_ledger(&self) -> GeneralLedger {
+        let general_ledger = GeneralLedger::new();
+
+        // TODO - Actually process txns
+
+        general_ledger
     }
 }
 

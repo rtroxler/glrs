@@ -14,12 +14,15 @@ mod conversions;
 pub extern "C" fn rust_perform(c_ptr: *const libc::c_char) -> *const libc::c_char {
     let string_arg = conversions::string_from_c_ptr(c_ptr);
 
-    let arg = InputArgs::from_json(&string_arg);
+    let input = InputArgs::from_json(&string_arg);
+    let ledger = &input.ledger;
 
-    println!("Rust input argument: {:?}", arg);
+    println!("Rust input argument: {:?}", input);
+
+    // TODO: let us return GLs (chrono serialization)
+    let general_ledger = ledger.process_general_ledger();
 
     let result = OutputArg { some_integer: 42, some_string: "the quick brown fox".to_string(), another_string: "jumps over the lazy dog".to_string() };
-    //println!("Testing output ... ");
 
     //println!("Rust result: {:?}", result);
 
