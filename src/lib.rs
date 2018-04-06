@@ -1,6 +1,10 @@
 extern crate libc;
-extern crate rustc_serialize;
-use rustc_serialize::json;
+
+#[macro_use]
+extern crate serde_derive;
+
+extern crate serde;
+extern crate serde_json;
 
 extern crate chrono;
 
@@ -17,16 +21,15 @@ pub extern "C" fn rust_perform(c_ptr: *const libc::c_char) -> *const libc::c_cha
     let input = InputArgs::from_json(&string_arg);
     let ledger = &input.ledger;
 
-    println!("Rust input argument: {:?}", input);
-
     // TODO: let us return GLs (chrono serialization)
     let general_ledger = ledger.process_general_ledger();
+    //general_ledger.print();
 
     let result = OutputArg { some_integer: 42, some_string: "the quick brown fox".to_string(), another_string: "jumps over the lazy dog".to_string() };
 
-    //println!("Rust result: {:?}", result);
-
-    let string_result = result.to_json();
+    println!("right before it");
+    let string_result = general_ledger.to_json();
+    println!("Rust result: {:?}", string_result);
     conversions::c_ptr_from_string(&string_result)
 }
 
@@ -38,27 +41,21 @@ pub extern "C" fn rust_free(c_ptr: *mut libc::c_void) {
 }
 
 
-#[derive(Debug, RustcDecodable)]
+#[derive(Debug, Serialize, Deserialize)]
 struct InputArgs {
     ledger: ledger::Ledger
 }
 
 impl InputArgs {
     pub fn from_json(json_string: &str) -> InputArgs {
-        json::decode(json_string).unwrap()
+        serde_json::from_str(json_string).unwrap()
     }
 }
 
 // This will probably be a GeneralLedger
-#[derive(Debug, RustcEncodable)]
+#[derive(Debug, Serialize, Deserialize)]
 struct OutputArg {
     some_integer: i32,
     some_string: String,
     another_string: String,
-}
-
-impl  OutputArg {
-    pub fn to_json(&self) -> String {
-        json::encode(self).unwrap()
-    }
 }

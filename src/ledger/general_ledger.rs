@@ -3,11 +3,14 @@ use chrono::prelude::*;
 use std::collections::HashMap;
 use std::collections::BTreeMap;
 
+extern crate serde;
+extern crate serde_json;
+
 use usd::USD;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GeneralLedger { // By Day
-    entries: HashMap<(Date<Utc>, String), USD>
+    entries: HashMap<(NaiveDate, String), USD>
 }
 
 impl GeneralLedger {
@@ -17,10 +20,14 @@ impl GeneralLedger {
         }
     }
 
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
+
     pub fn print(&self) {
         // TODO: This is turrible
-        println!("|     Date      | Acct | Debit | Credit |");
-        println!("-----------------------------------------");
+        println!("|    Date    | Acct | Debit | Credit |");
+        println!("--------------------------------------");
         let ordered: BTreeMap<_, _>  = self.entries.iter().collect();
         for (&(date, ref code), amount) in ordered {
             if amount.pennies > 0 {
@@ -33,7 +40,7 @@ impl GeneralLedger {
         }
     }
 
-    pub fn record_double_entry(&mut self, date: Date<Utc>, amount: USD,
+    pub fn record_double_entry(&mut self, date: NaiveDate, amount: USD,
                            debit_account_code: &String, credit_account_code: &String) {
         {
             let debit = self.entries.entry((date, debit_account_code.clone())).or_insert(USD::zero());
@@ -45,7 +52,7 @@ impl GeneralLedger {
         }
     }
 
-    pub fn fetch_amount(&self, date: Date<Utc>, account_code: String) -> Option<&USD> {
+    pub fn fetch_amount(&self, date: NaiveDate, account_code: String) -> Option<&USD> {
         self.entries.get(&(date, account_code))
     }
 }

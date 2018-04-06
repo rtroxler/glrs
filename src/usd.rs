@@ -2,7 +2,7 @@ use std::ops;
 use std::fmt;
 use std::cmp::Ordering;
 
-#[derive(Copy, Clone, Eq, RustcDecodable)]
+#[derive(Copy, Clone, Eq, Serialize, Deserialize)]
 pub struct USD {
     pub pennies: i64
 }

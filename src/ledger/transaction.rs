@@ -15,13 +15,12 @@ use ledger::general_ledger::GeneralLedger;
 //Assessment { }
 //}
 
-//#[derive(Debug, RustcDecodable)]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Assessment {
     amount: USD,
     account_code: String,
     pub effective_on: DateTime<Utc>,
-    pub service_start_date: Option<DateTime<Utc>>,
+    pub service_start_date: Option<DateTime<Utc>>, // Should really be Date instead
     pub service_end_date: Option<DateTime<Utc>>,
 }
 
@@ -126,6 +125,7 @@ pub trait Transaction {
 
     fn process(&self, gl: &mut GeneralLedger) {
         // We're assessment (charge), write entries based on our account code
+        println!("Processing");
         match self.account_code() {
             "4000" => self.process_daily_accrual(gl),
             "4050" => self.process_accrual(gl),
@@ -191,12 +191,12 @@ impl Transaction for Payment {
             (self.amount, USD::zero())
         };
         // payment to ar
-        gl.record_double_entry(self.effective_on.date(), ar_to_credit, &self.account_code, &account_map::accounts_receivable_code(&self.payee_account_code));
+        gl.record_double_entry(self.effective_on.naive_utc().date(), ar_to_credit, &self.account_code, &account_map::accounts_receivable_code(&self.payee_account_code));
 
         // payment to deferred if applicable
         if deferred_amount > USD::zero() {
             //println!("Deferred amount {:?}", deferred_amount);
-            gl.record_double_entry(self.effective_on.date(), deferred_amount, &self.account_code, &account_map::deferred_code(&self.payee_account_code));
+            gl.record_double_entry(self.effective_on.naive_utc().date(), deferred_amount, &self.account_code, &account_map::deferred_code(&self.payee_account_code));
         }
 
         // Need to "eat" previously paid first.
@@ -206,13 +206,13 @@ impl Transaction for Payment {
                 break;
             }
             if amount <= deferred_amount_mut {
-                gl.record_double_entry(date.date(),
+                gl.record_double_entry(date.naive_utc().date(),
                                         amount,
                                         &account_map::deferred_code(&self.payee_account_code),
                                         &account_map::accounts_receivable_code(&self.payee_account_code));
                 deferred_amount_mut -= amount;
             } else {
-                gl.record_double_entry(date.date(),
+                gl.record_double_entry(date.naive_utc().date(),
                                         deferred_amount_mut,
                                         &account_map::deferred_code(&self.payee_account_code),
                                         &account_map::accounts_receivable_code(&self.payee_account_code));
@@ -241,8 +241,9 @@ impl Transaction for Assessment {
 
     fn process_daily_accrual(&self, gl: &mut GeneralLedger) {
         // We're assessment (charge), write entries based on our account code
+        println!("process_daily_accrual");
         for (date, amount) in self.payable_amounts_per_day() {
-            gl.record_double_entry(date.date(),
+            gl.record_double_entry(date.naive_utc().date(),
                                    amount,
                                    &account_map::accounts_receivable_code(&self.account_code),
                                    &self.account_code);
@@ -251,7 +252,7 @@ impl Transaction for Assessment {
     }
 
     fn process_accrual(&self, gl: &mut GeneralLedger) {
-        gl.record_double_entry(self.effective_on.date(),
+        gl.record_double_entry(self.effective_on.naive_utc().date(),
                                self.amount,
                                &account_map::accounts_receivable_code(&self.account_code),
                                &self.account_code);

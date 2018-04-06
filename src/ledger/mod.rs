@@ -6,7 +6,7 @@ use ledger::general_ledger::GeneralLedger;
 use ledger::transaction::*;
 
 // TODO: serialize chrono so I can replace these
-#[derive(Debug, RustcDecodable)]
+#[derive(Debug, Serialize, Deserialize)]
 struct DumbAssessment {
     amount: USD,
     account_code: String,
@@ -15,7 +15,7 @@ struct DumbAssessment {
     service_end_date: String
 }
 
-#[derive(Debug, RustcDecodable)]
+#[derive(Debug, Serialize, Deserialize)]
 struct DumbPayment {
     amount: USD,
     account_code: String,
@@ -26,17 +26,19 @@ struct DumbPayment {
     payee_service_end_date: String
 }
 
-#[derive(Debug, RustcDecodable)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Ledger {
-    assessments: Vec<DumbAssessment>,
+    assessments: Vec<Assessment>,
     payments: Vec<DumbPayment>
 }
 
 impl Ledger {
     pub fn process_general_ledger(&self) -> GeneralLedger {
-        let general_ledger = GeneralLedger::new();
+        let mut general_ledger = GeneralLedger::new();
 
-        // TODO - Actually process txns
+        for assessment in &self.assessments {
+            assessment.process(&mut general_ledger);
+        }
 
         general_ledger
     }
