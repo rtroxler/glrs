@@ -1,6 +1,6 @@
 use usd::USD;
 
-mod general_ledger;
+pub mod general_ledger;
 mod transaction;
 use ledger::general_ledger::GeneralLedger;
 use ledger::transaction::*;
