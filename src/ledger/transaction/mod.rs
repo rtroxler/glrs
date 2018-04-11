@@ -2,16 +2,11 @@ extern crate chrono;
 use chrono::prelude::*;
 
 use usd::USD;
-
 use account_map;
-
 use ledger::general_ledger::GeneralLedger;
 
 pub mod assessment;
-use ledger::transaction::assessment::Assessment;
-
 pub mod payment;
-use ledger::transaction::payment::Payment;
 
 // Will not work
 // Can't access data without pattern matching it out, which then moves it.
@@ -90,6 +85,8 @@ pub trait Transaction {
 #[cfg(test)]
 mod integration_tests {
     use super::*;
+    use ledger::transaction::assessment::Assessment;
+    use ledger::transaction::payment::Payment;
 
     #[test]
     fn test_rent_account_balance_accrues_daily() {
@@ -130,6 +127,40 @@ mod integration_tests {
         fee_charge.process(&mut gl);
 
         assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("1103")), Some(&USD::from_float(30.0)));
+        assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("4050")), Some(&USD::from_float(-30.0)));
+
+        // Doesn't have anything the next day
+        // assert entries count == 2
+    }
+
+    #[test]
+    fn test_fee_account_balance_accrues_periodically_and_handles_payment() {
+        let fee_charge = Assessment::new(
+            USD::from_float(30.0),
+            String::from("4050"), // Fee
+            Utc.ymd(2017, 11, 1).and_hms(0,0,0),
+            None,
+            None,
+            );
+
+        let payment = Payment::new(
+            USD::from_float(30.0),
+            String::from("1000"),
+            Utc.ymd(2017, 11, 1).and_hms(0,0,0),
+            USD::from_float(30.0),
+            String::from("4050"),
+            None,
+            None,
+            Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
+            None,
+            USD::from_float(0.0)
+            );
+
+        let mut gl = GeneralLedger::new();
+        fee_charge.process(&mut gl);
+        payment.process(&mut gl);
+
+        assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("1000")), Some(&USD::from_float(30.0)));
         assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("4050")), Some(&USD::from_float(-30.0)));
 
         // Doesn't have anything the next day

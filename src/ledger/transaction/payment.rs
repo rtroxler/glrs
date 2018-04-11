@@ -29,7 +29,7 @@ impl Payment {
             payee_service_start_date: payee_service_start_date,
             payee_service_end_date: payee_service_end_date,
             payee_effective_on: payee_effective_on,
-            payee_resolved_on: payee_resolved_on,
+            payee_resolved_on: payee_resolved_on, // Not used at all right now? For credits, which may be an entirely different struct
             previously_paid_amount: previously_paid_amount
         }
     }
@@ -52,15 +52,14 @@ impl Transaction for Payment {
         self.payee_amount
     }
 
-    fn process_accrual(&self, _gl: &mut GeneralLedger) {
-
+    fn process_accrual(&self, gl: &mut GeneralLedger) {
+        // TODO; Does not defer if before start date
+        gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &account_map::accounts_receivable_code(&self.payee_account_code));
     }
 
     // TODO: these
     fn process_cash(&self, _gl: &mut GeneralLedger) {}
     fn process_daily_accrual(&self, gl: &mut GeneralLedger) {
-        // We're a payment, pay for things
-
         // For Credits
         if self.account_code == String::from("4501") {
             match self.payee_resolved_on {
