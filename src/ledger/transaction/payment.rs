@@ -57,8 +57,10 @@ impl Transaction for Payment {
         gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &account_map::accounts_receivable_code(&self.payee_account_code));
     }
 
-    // TODO: these
-    fn process_cash(&self, _gl: &mut GeneralLedger) {}
+    fn process_cash(&self, gl: &mut GeneralLedger) {
+        gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &self.payee_account_code);
+    }
+
     fn process_daily_accrual(&self, gl: &mut GeneralLedger) {
         // For Credits
         if self.account_code == String::from("4501") {

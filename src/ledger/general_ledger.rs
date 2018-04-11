@@ -56,6 +56,10 @@ impl GeneralLedger {
     pub fn fetch_amount(&self, date: NaiveDate, account_code: String) -> Option<&USD> {
         self.entries.get(&(date, account_code))
     }
+
+    pub fn entries(&self) -> &HashMap<(NaiveDate, String), USD> {
+        &self.entries
+    }
 }
 
 // for serializing the tuple key of GL#entries

@@ -114,6 +114,56 @@ mod integration_tests {
     }
 
     #[test]
+    fn test_cash_based_account_balance_records_nothing_on_assessment() {
+        let insurance_charge = Assessment::new(
+            USD::from_float(12.0),
+            String::from("4100"), // Insurance (cash based)
+            Utc.ymd(2017, 11, 1).and_hms(0,0,0),
+            Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
+            Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
+            );
+
+        let mut gl = GeneralLedger::new();
+        insurance_charge.process(&mut gl);
+
+        assert!(gl.entries().is_empty());
+    }
+
+    #[test]
+    fn test_cash_based_account_balance_records_entries_on_payment() {
+        let insurance_charge = Assessment::new(
+            USD::from_float(12.0),
+            String::from("4100"), // Insurance (cash based)
+            Utc.ymd(2017, 11, 1).and_hms(0,0,0),
+            Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
+            Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
+            );
+
+        let mut gl = GeneralLedger::new();
+        insurance_charge.process(&mut gl);
+
+        assert!(gl.entries().is_empty());
+
+        let payment = Payment::new(
+            USD::from_float(12.0),
+            String::from("1000"),
+            Utc.ymd(2017, 11, 1).and_hms(0,0,0),
+            USD::from_float(12.0),
+            String::from("4100"),
+            Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
+            Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
+            Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
+            None,
+            USD::from_float(0.0)
+            );
+
+        payment.process(&mut gl);
+
+        assert_eq!(gl.fetch_amount(insurance_charge.effective_on.naive_utc().date(), String::from("1000")), Some(&USD::from_float(12.0)));
+        assert_eq!(gl.fetch_amount(insurance_charge.effective_on.naive_utc().date(), String::from("4100")), Some(&USD::from_float(-12.0)));
+    }
+
+    #[test]
     fn test_fee_account_balance_accrues_periodically() {
         let fee_charge = Assessment::new(
             USD::from_float(30.0),
