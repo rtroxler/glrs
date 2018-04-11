@@ -21,12 +21,8 @@ impl GeneralLedger {
         }
     }
 
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(self).unwrap()
-    }
-
     pub fn print(&self) {
-        // TODO: This is turrible
+        // Debug purposes
         println!("|    Date    | Acct | Debit | Credit |");
         println!("--------------------------------------");
         let ordered: BTreeMap<_, _>  = self.entries.iter().collect();

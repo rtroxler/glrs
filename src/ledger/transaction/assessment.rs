@@ -47,7 +47,6 @@ impl Transaction for Assessment {
                                    &account_map::accounts_receivable_code(&self.account_code),
                                    &self.account_code);
         }
-
     }
 
     fn process_accrual(&self, gl: &mut GeneralLedger) {

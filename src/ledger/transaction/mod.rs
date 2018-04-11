@@ -77,6 +77,7 @@ pub trait Transaction {
             "4050" => self.process_accrual(gl),
             "4051" => self.process_accrual(gl),
             "4100" => self.process_cash(gl),
+            "4150" => self.process_accrual(gl),
             _ => println!("Fuck")
         }
     }
@@ -262,6 +263,85 @@ mod integration_tests {
     }
 
     #[test]
+    fn test_a_full_payment_against_future_daily_accrual_assessment() {
+        let mut gl = GeneralLedger::new();
+
+        let rent_charge = Assessment::new(
+            USD::from_float(30.0),
+            String::from("4000"),
+            Utc.ymd(2017, 11, 1).and_hms(0,0,0),
+            Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
+            Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
+            );
+
+        let payment = Payment::new(
+            USD::from_float(30.0),
+            String::from("1000"),
+            Utc.ymd(2017, 10, 1).and_hms(0,0,0),
+            USD::from_float(30.0),
+            String::from("4000"),
+            Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
+            Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
+            Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
+            None,
+            USD::from_float(0.0)
+            );
+
+        rent_charge.process(&mut gl);
+        payment.process(&mut gl);
+
+        assert_eq!(gl.fetch_amount(payment.effective_on.naive_utc().date(), String::from("1000")), Some(&USD::from_float(30.0)));
+        assert_eq!(gl.fetch_amount(payment.effective_on.naive_utc().date(), String::from("2020")), Some(&USD::from_float(-30.0)));
+
+        let start = rent_charge.service_start_date.unwrap().naive_utc().date();
+        let end = rent_charge.service_end_date.unwrap().naive_utc().date();
+        let mut date_stepper = start.checked_add_signed(chrono::Duration::days(1)).expect("Overflow");
+        while date_stepper <= end {
+            assert_eq!(gl.fetch_amount(date_stepper, String::from("2020")), Some(&USD::from_float(1.0)));
+            assert_eq!(gl.fetch_amount(date_stepper, String::from("4000")), Some(&USD::from_float(-1.0)));
+
+            date_stepper = date_stepper.checked_add_signed(chrono::Duration::days(1))
+                .expect("Overflow");
+        }
+    }
+
+    #[test]
+    fn test_a_full_payment_against_future_accrual_assessment() {
+        let mut gl = GeneralLedger::new();
+
+        let service_charge = Assessment::new(
+            USD::from_float(30.0),
+            String::from("4150"),
+            Utc.ymd(2017, 11, 1).and_hms(0,0,0),
+            Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
+            Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
+            );
+
+        let payment = Payment::new(
+            USD::from_float(30.0),
+            String::from("1000"),
+            Utc.ymd(2017, 10, 1).and_hms(0,0,0),
+            USD::from_float(30.0),
+            String::from("4150"),
+            Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
+            Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
+            Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
+            None,
+            USD::from_float(0.0)
+            );
+
+        service_charge.process(&mut gl);
+        payment.process(&mut gl);
+
+        assert_eq!(gl.fetch_amount(payment.effective_on.naive_utc().date(), String::from("1000")), Some(&USD::from_float(30.0)));
+        assert_eq!(gl.fetch_amount(payment.effective_on.naive_utc().date(), String::from("2023")), Some(&USD::from_float(-30.0)));
+
+        assert_eq!(gl.fetch_amount(service_charge.effective_on.naive_utc().date(), String::from("2023")), Some(&USD::from_float(30.0)));
+        assert_eq!(gl.fetch_amount(service_charge.effective_on.naive_utc().date(), String::from("4150")), Some(&USD::from_float(-30.0)));
+    }
+
+
+    #[test]
     fn test_two_even_partial_payments_against_rent() {
         let mut gl = GeneralLedger::new();
 
@@ -329,6 +409,7 @@ mod integration_tests {
     // void in general
     //
     // credits
+    // refunds
     //
     // move out / rental termination
 }
