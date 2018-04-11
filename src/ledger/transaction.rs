@@ -20,8 +20,8 @@ pub struct Assessment {
     amount: USD,
     account_code: String,
     pub effective_on: DateTime<Utc>,
-    pub service_start_date: Option<DateTime<Utc>>, // Should really be Date instead
-    pub service_end_date: Option<DateTime<Utc>>,
+    pub service_start_date: Option<DateTime<Utc>>, // TODO Should really be Date instead
+    pub service_end_date: Option<DateTime<Utc>>, // TODO Should really be Date instead
 }
 
 impl Assessment {
@@ -37,7 +37,7 @@ impl Assessment {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Payment {
     amount: USD,
     account_code: String,
@@ -125,10 +125,10 @@ pub trait Transaction {
 
     fn process(&self, gl: &mut GeneralLedger) {
         // We're assessment (charge), write entries based on our account code
-        println!("Processing");
         match self.account_code() {
             "4000" => self.process_daily_accrual(gl),
             "4050" => self.process_accrual(gl),
+            "4051" => self.process_accrual(gl),
             "4100" => self.process_cash(gl),
             _ => println!("Fuck")
         }
@@ -152,8 +152,11 @@ impl Transaction for Payment {
         self.payee_amount
     }
 
+    fn process_accrual(&self, _gl: &mut GeneralLedger) {
+
+    }
+
     // TODO: these
-    fn process_accrual(&self, _gl: &mut GeneralLedger) {}
     fn process_cash(&self, _gl: &mut GeneralLedger) {}
     fn process_daily_accrual(&self, gl: &mut GeneralLedger) {
         // We're a payment, pay for things
@@ -241,7 +244,6 @@ impl Transaction for Assessment {
 
     fn process_daily_accrual(&self, gl: &mut GeneralLedger) {
         // We're assessment (charge), write entries based on our account code
-        println!("process_daily_accrual");
         for (date, amount) in self.payable_amounts_per_day() {
             gl.record_double_entry(date.naive_utc().date(),
                                    amount,

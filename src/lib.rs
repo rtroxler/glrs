@@ -1,3 +1,6 @@
+// TODO: Remove me
+#![allow(dead_code)]
+
 extern crate libc;
 
 #[macro_use]
