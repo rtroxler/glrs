@@ -2,6 +2,8 @@ pub mod general_ledger;
 mod transaction;
 use ledger::general_ledger::GeneralLedger;
 use ledger::transaction::*;
+use ledger::transaction::assessment::Assessment;
+use ledger::transaction::payment::Payment;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Ledger {
