@@ -1,65 +1,65 @@
+#[derive(Debug, Serialize, Deserialize)]
+pub enum AccountCode {
+    Base(String),
+    Daily(AccrualAccount),
+    Periodic(AccrualAccount),
+    Cash(CashAccount)
+}
+
 #[derive(Debug)]
-pub struct DumbAss<AC> {
+pub struct DumbAss {
     name: String,
-    account_code: AC
+    account_code: AccountCode
 }
 
-impl<AC> DumbAss<AC> {
-    fn ac(&self) -> &AC {
-        &self.account_code
-    }
-}
-
-impl DumbAss<String> {
+impl DumbAss {
     fn process(&self) {
-        println!("Can't process")
-    }
-}
-impl DumbAss<CashAccount> {
-    fn process(&self) {
-        println!("PROCESSING CASH!")
-    }
-}
-impl DumbAss<DailyAccrualAccount> {
-    fn process(&self) {
-        println!("PROCESSING DAILY!")
-    }
-}
-impl DumbAss<AccrualAccount> {
-    fn process(&self) {
-        println!("PROCESSING ACCRUAL!")
+        match &self.account_code {
+            &AccountCode::Base(ref string) => println!("Can't process AC"),
+            &AccountCode::Daily(ref ac) => println!("Daily accrual ac: {:?}", ac),
+            &AccountCode::Periodic(ref ac) => println!("Periodic accrual {:?}", ac),
+            &AccountCode::Cash(ref ac) => println!("Cash {:?}", ac),
+        }
     }
 }
 
 #[derive(Debug)]
-pub enum AccountCode<AC, S> {
-    Mapped(AC),
-    Base(S)
+struct DumbLedger<> {
+    asses: Vec<DumbAss>
 }
-
-trait TypedAccountCode {} // not needed?
+impl DumbLedger {
+    fn new() -> DumbLedger {
+        let mut l = DumbLedger {
+            asses: Vec::new()
+        };
+        let cash_ab = DumbAss { name: String::from("he"), account_code: AccountCode::Cash(CashAccount { revenue_code: String::from("4000") }) };
+        let accrual_ab = DumbAss { name: String::from("he"), account_code: AccountCode::Periodic(AccrualAccount { revenue_code: String::from("4000"), accounts_receivable_code: String::from("1101"), deferred_code: String::from("2020") }) };
+        let base_ab = DumbAss { name: String::from("he"), account_code: AccountCode::Base(String::from("1000")) };
+        l.asses.push(cash_ab);
+        l.asses.push(accrual_ab);
+        l.asses.push(base_ab);
+        l
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
-struct DailyAccrualAccount {
-    account_code: String,
-    accounts_receivable_code: String,
-    deferred_code: String
+pub struct AccrualAccount {
+    pub revenue_code: String,
+    pub accounts_receivable_code: String,
+    pub deferred_code: String
 }
-impl TypedAccountCode for DailyAccrualAccount {}
 
 #[derive(Debug, Serialize, Deserialize)]
-struct AccrualAccount {
-    account_code: String,
-    accounts_receivable_code: String,
-    deferred_code: String
+pub struct DailyAccrualAccount {
+    pub revenue_code: String,
+    pub accounts_receivable_code: String,
+    pub deferred_code: String
 }
-impl TypedAccountCode for AccrualAccount {}
 
 #[derive(Debug, Serialize, Deserialize)]
-struct CashAccount {
-    account_code: String
+pub struct CashAccount {
+    pub revenue_code: String
 }
-impl TypedAccountCode for CashAccount {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChartOfAccounts {
@@ -79,32 +79,46 @@ impl ChartOfAccounts {
         // TODO This should be read in from FMS, but for now let's hard code it to Cubies
         // Basic Rent
         chart.daily_accrual_accounts.push(DailyAccrualAccount {
-            account_code: String::from("4000"), accounts_receivable_code: String::from("1101"), deferred_code: String::from("2020")
+            revenue_code: String::from("4000"), accounts_receivable_code: String::from("1101"), deferred_code: String::from("2020")
         });
         // Some Fees
         chart.accrual_accounts.push(AccrualAccount {
-            account_code: String::from("4050"), accounts_receivable_code: String::from("1104"), deferred_code: String::from("")
+            revenue_code: String::from("4050"), accounts_receivable_code: String::from("1104"), deferred_code: String::from("")
         });
         chart.accrual_accounts.push(AccrualAccount {
-            account_code: String::from("4051"), accounts_receivable_code: String::from("1104"), deferred_code: String::from("")
+            revenue_code: String::from("4051"), accounts_receivable_code: String::from("1104"), deferred_code: String::from("")
         });
         // Basic Service
         chart.accrual_accounts.push(AccrualAccount {
-            account_code: String::from("4150"), accounts_receivable_code: String::from("1103"), deferred_code: String::from("2023")
+            revenue_code: String::from("4150"), accounts_receivable_code: String::from("1103"), deferred_code: String::from("2023")
         });
         // Insurance
         chart.cash_accounts.push(CashAccount {
-            account_code: String::from("4100")
+            revenue_code: String::from("4100")
         });
         chart
     }
 
     pub fn play(&self) {
-        let base_ab = DumbAss::<String> { name: String::from("he"), account_code: String::from("1000") };
+        let base_ab = DumbAss { name: String::from("he"), account_code: AccountCode::Base(String::from("1000")) };
         println!("base {:?}", base_ab);
         base_ab.process();
-        let cash_ab = DumbAss { name: String::from("he"), account_code: CashAccount { account_code: String::from("4000") } };
+        let cash_ab = DumbAss { name: String::from("he"), account_code: AccountCode::Cash(CashAccount { revenue_code: String::from("4000") }) };
         println!("cash {:?}", cash_ab);
         cash_ab.process();
+    }
+}
+
+#[cfg(test)]
+mod integration_tests {
+    use super::*;
+
+    #[test]
+    fn test_types() {
+        let mut ledger = DumbLedger::new();
+        println!("{:?}", ledger);
+        for ass in &ledger.asses {
+            ass.process();
+        }
     }
 }

@@ -74,9 +74,6 @@ impl Payment {
 }
 
 impl Transaction for Payment {
-    fn account_code(&self) -> &str {
-        self.payee_account_code.as_str()
-    }
     fn previously_paid_amount(&self) -> USD {
         self.previously_paid_amount
     }
@@ -90,43 +87,45 @@ impl Transaction for Payment {
         self.payee_amount
     }
 
-    fn process_accrual(&self, gl: &mut GeneralLedger) {
-        if self.effective_on >= self.payee_effective_on {
-            gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &account_map::accounts_receivable_code(&self.payee_account_code));
-        } else {
-            let deferred_code = account_map::deferred_code(&self.payee_account_code);
-            gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &deferred_code);
-            gl.record_double_entry(self.payee_effective_on.naive_utc().date(), self.amount, &deferred_code, &account_map::accounts_receivable_code(&self.payee_account_code));
-        }
+    fn process(&self, _gl: &mut GeneralLedger) {
     }
+    //fn process_accrual(&self, gl: &mut GeneralLedger) {
+        //if self.effective_on >= self.payee_effective_on {
+            //gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &account_map::accounts_receivable_code(&self.payee_account_code));
+        //} else {
+            //let deferred_code = account_map::deferred_code(&self.payee_account_code);
+            //gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &deferred_code);
+            //gl.record_double_entry(self.payee_effective_on.naive_utc().date(), self.amount, &deferred_code, &account_map::accounts_receivable_code(&self.payee_account_code));
+        //}
+    //}
 
-    fn process_cash(&self, gl: &mut GeneralLedger) {
-        gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &self.payee_account_code);
-    }
+    //fn process_cash(&self, gl: &mut GeneralLedger) {
+        //gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &self.payee_account_code);
+    //}
 
-    fn process_daily_accrual(&self, gl: &mut GeneralLedger) {
-        // Absolute garbage method name and placement
-        let (deferred_amount, leftover_days) = self.record_transaction_date_entries_and_return_deferred(gl);
+    //fn process_daily_accrual(&self, gl: &mut GeneralLedger) {
+        //// Absolute garbage method name and placement
+        //let (deferred_amount, leftover_days) = self.record_transaction_date_entries_and_return_deferred(gl);
 
-        let mut deferred_amount_mut = deferred_amount;
-        for (date, amount) in leftover_days {
-            if deferred_amount_mut == USD::zero() {
-                break;
-            }
-            if amount <= deferred_amount_mut {
-                gl.record_double_entry(date.naive_utc().date(),
-                                        amount,
-                                        &account_map::deferred_code(&self.payee_account_code),
-                                        &account_map::accounts_receivable_code(&self.payee_account_code));
-                deferred_amount_mut -= amount;
-            } else {
-                gl.record_double_entry(date.naive_utc().date(),
-                                        deferred_amount_mut,
-                                        &account_map::deferred_code(&self.payee_account_code),
-                                        &account_map::accounts_receivable_code(&self.payee_account_code));
-                deferred_amount_mut = USD::zero();
-            }
-        }
-    }
+        //let mut deferred_amount_mut = deferred_amount;
+        //for (date, amount) in leftover_days {
+            //if deferred_amount_mut == USD::zero() {
+                //break;
+            //}
+            //if amount <= deferred_amount_mut {
+                //gl.record_double_entry(date.naive_utc().date(),
+                                        //amount,
+                                        //&account_map::deferred_code(&self.payee_account_code),
+                                        //&account_map::accounts_receivable_code(&self.payee_account_code));
+                //deferred_amount_mut -= amount;
+            //} else {
+                //gl.record_double_entry(date.naive_utc().date(),
+                                        //deferred_amount_mut,
+                                        //&account_map::deferred_code(&self.payee_account_code),
+                                        //&account_map::accounts_receivable_code(&self.payee_account_code));
+                //deferred_amount_mut = USD::zero();
+            //}
+        //}
+    //}
 
 }

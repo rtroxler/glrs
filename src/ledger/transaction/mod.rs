@@ -4,6 +4,9 @@ use chrono::prelude::*;
 use usd::USD;
 use account_map;
 use ledger::general_ledger::GeneralLedger;
+use chart_of_accounts::AccountCode;
+use chart_of_accounts::CashAccount;
+use chart_of_accounts::AccrualAccount;
 
 pub mod assessment;
 pub mod payment;
@@ -25,7 +28,6 @@ pub trait Transaction {
     fn payee_service_start_date(&self) -> Option<DateTime<Utc>>;
     fn payee_service_end_date(&self) -> Option<DateTime<Utc>>;
     fn payee_amount(&self) -> USD;
-    fn account_code(&self) -> &str;
     fn previously_paid_amount(&self) -> USD;
 
     fn days_in_payee_service_period(&self) -> i64 {
@@ -66,20 +68,22 @@ pub trait Transaction {
     }
 
     // Process
-    fn process_daily_accrual(&self, gl: &mut GeneralLedger);
-    fn process_accrual(&self, gl: &mut GeneralLedger);
-    fn process_cash(&self, gl: &mut GeneralLedger);
+    //fn process_daily_accrual(&self, gl: &mut GeneralLedger);
+    //fn process_accrual(&self, gl: &mut GeneralLedger);
+    //fn process_cash(&self, gl: &mut GeneralLedger);
 
-    fn process(&self, gl: &mut GeneralLedger) {
+    fn process(&self, _gl: &mut GeneralLedger) {
+        println!("wat");
         // We're assessment (charge), write entries based on our account code
-        match self.account_code() {
-            "4000" => self.process_daily_accrual(gl),
-            "4050" => self.process_accrual(gl),
-            "4051" => self.process_accrual(gl),
-            "4100" => self.process_cash(gl),
-            "4150" => self.process_accrual(gl),
-            _ => println!("Fuck")
-        }
+        //self.process_daily_accrual(gl) // TODO no
+        //match self.account_code() {
+            //"4000" => self.process_daily_accrual(gl),
+            //"4050" => self.process_accrual(gl),
+            //"4051" => self.process_accrual(gl),
+            //"4100" => self.process_cash(gl),
+            //"4150" => self.process_accrual(gl),
+            //_ => println!("Fuck")
+        //}
     }
 }
 
@@ -91,16 +95,24 @@ mod integration_tests {
 
     #[test]
     fn test_rent_account_balance_accrues_daily() {
+        println!("setup");
         let rent_charge = Assessment::new(
             USD::from_float(30.0),
-            String::from("4000"),
+            AccountCode::Daily(AccrualAccount {
+               revenue_code: String::from("4000"),
+               accounts_receivable_code: String::from("1101"),
+               deferred_code: String::from("2020")
+            }),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             );
 
+        println!("setup");
         let mut gl = GeneralLedger::new();
+        println!("process");
         rent_charge.process(&mut gl);
+        println!("process done");
         let start = rent_charge.service_start_date.unwrap().naive_utc().date();
         let end = rent_charge.service_end_date.unwrap().naive_utc().date();
 
@@ -118,7 +130,9 @@ mod integration_tests {
     fn test_cash_based_account_balance_records_nothing_on_assessment() {
         let insurance_charge = Assessment::new(
             USD::from_float(12.0),
-            String::from("4100"), // Insurance (cash based)
+            AccountCode::Cash(CashAccount {
+               revenue_code: String::from("4100"),
+            }),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -134,7 +148,9 @@ mod integration_tests {
     fn test_cash_based_account_balance_records_entries_on_payment() {
         let insurance_charge = Assessment::new(
             USD::from_float(12.0),
-            String::from("4100"), // Insurance (cash based)
+            AccountCode::Cash(CashAccount {
+               revenue_code: String::from("4100"),
+            }),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -168,7 +184,11 @@ mod integration_tests {
     fn test_fee_account_balance_accrues_periodically() {
         let fee_charge = Assessment::new(
             USD::from_float(30.0),
-            String::from("4050"), // Fee
+            AccountCode::Periodic(AccrualAccount {
+               revenue_code: String::from("4050"),
+               accounts_receivable_code: String::from("1104"),
+               deferred_code: String::from("")
+            }),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             None,
             None,
@@ -177,7 +197,7 @@ mod integration_tests {
         let mut gl = GeneralLedger::new();
         fee_charge.process(&mut gl);
 
-        assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("1103")), Some(&USD::from_float(30.0)));
+        assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("1104")), Some(&USD::from_float(30.0)));
         assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("4050")), Some(&USD::from_float(-30.0)));
 
         // Doesn't have anything the next day
@@ -185,10 +205,14 @@ mod integration_tests {
     }
 
     #[test]
-    fn test_fee_account_balance_accrues_periodically_and_handles_payment() {
+    fn test_fee_account_balance_accrues_and_is_paid_periodically() {
         let fee_charge = Assessment::new(
             USD::from_float(30.0),
-            String::from("4050"), // Fee
+            AccountCode::Periodic(AccrualAccount {
+               revenue_code: String::from("4050"),
+               accounts_receivable_code: String::from("1104"),
+               deferred_code: String::from("")
+            }),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             None,
             None,
@@ -210,6 +234,7 @@ mod integration_tests {
         let mut gl = GeneralLedger::new();
         fee_charge.process(&mut gl);
         payment.process(&mut gl);
+        gl.print();
 
         assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("1000")), Some(&USD::from_float(30.0)));
         assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("4050")), Some(&USD::from_float(-30.0)));
@@ -224,7 +249,11 @@ mod integration_tests {
 
         let rent_charge = Assessment::new(
             USD::from_float(30.0),
-            String::from("4000"),
+            AccountCode::Daily(AccrualAccount {
+               revenue_code: String::from("4000"),
+               accounts_receivable_code: String::from("1101"),
+               deferred_code: String::from("2020")
+            }),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -268,7 +297,11 @@ mod integration_tests {
 
         let rent_charge = Assessment::new(
             USD::from_float(30.0),
-            String::from("4000"),
+            AccountCode::Daily(AccrualAccount {
+               revenue_code: String::from("4000"),
+               accounts_receivable_code: String::from("1101"),
+               deferred_code: String::from("2020")
+            }),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -311,7 +344,11 @@ mod integration_tests {
 
         let service_charge = Assessment::new(
             USD::from_float(30.0),
-            String::from("4150"),
+            AccountCode::Periodic(AccrualAccount {
+               revenue_code: String::from("4150"),
+               accounts_receivable_code: String::from("1103"),
+               deferred_code: String::from("2023")
+            }),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -347,7 +384,11 @@ mod integration_tests {
 
         let rent_charge = Assessment::new(
             USD::from_float(30.0),
-            String::from("4000"),
+            AccountCode::Daily(AccrualAccount {
+               revenue_code: String::from("4000"),
+               accounts_receivable_code: String::from("1101"),
+               deferred_code: String::from("2020")
+            }),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
