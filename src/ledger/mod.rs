@@ -5,10 +5,7 @@ use ledger::general_ledger::GeneralLedger;
 use ledger::transaction::assessment::Assessment;
 use ledger::transaction::payment::Payment;
 use ledger::transaction::Transaction;
-use chart_of_accounts::AccountCode;
-use chart_of_accounts::ChartOfAccounts;
-use chart_of_accounts::CashAccount;
-use chart_of_accounts::AccrualAccount;
+use chart_of_accounts::{AccountCode, ChartOfAccounts, CashAccount, AccrualAccount};
 
 
 
