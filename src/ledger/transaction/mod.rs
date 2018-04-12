@@ -166,7 +166,9 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             USD::from_float(12.0),
-            String::from("4100"),
+            AccountCode::Cash(CashAccount {
+               revenue_code: String::from("4100"),
+            }),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -223,7 +225,11 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            String::from("4050"),
+            AccountCode::Periodic(AccrualAccount {
+               revenue_code: String::from("4050"),
+               accounts_receivable_code: String::from("1104"),
+               deferred_code: String::from("")
+            }),
             None,
             None,
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -264,7 +270,11 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            String::from("4000"),
+            AccountCode::Daily(AccrualAccount {
+               revenue_code: String::from("4000"),
+               accounts_receivable_code: String::from("1101"),
+               deferred_code: String::from("2020")
+            }),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -312,7 +322,11 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 10, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            String::from("4000"),
+            AccountCode::Daily(AccrualAccount {
+               revenue_code: String::from("4000"),
+               accounts_receivable_code: String::from("1101"),
+               deferred_code: String::from("2020")
+            }),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -359,7 +373,11 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 10, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            String::from("4150"),
+            AccountCode::Periodic(AccrualAccount {
+               revenue_code: String::from("4150"),
+               accounts_receivable_code: String::from("1103"),
+               deferred_code: String::from("2023")
+            }),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -399,7 +417,11 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            String::from("4000"),
+            AccountCode::Daily(AccrualAccount {
+               revenue_code: String::from("4000"),
+               accounts_receivable_code: String::from("1101"),
+               deferred_code: String::from("2020")
+            }),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -412,7 +434,11 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            String::from("4000"),
+            AccountCode::Daily(AccrualAccount {
+               revenue_code: String::from("4000"),
+               accounts_receivable_code: String::from("1101"),
+               deferred_code: String::from("2020")
+            }),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
