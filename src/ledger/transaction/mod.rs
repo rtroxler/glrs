@@ -14,11 +14,12 @@ pub mod payment;
 //Do we need a credit transaction? Can it just be made a part of payee_discount_amount?
 //What if it's a full credit, then it would.
 
-pub trait Transaction {
+pub trait Transaction<'a> {
     fn payee_service_start_date(&self) -> Option<DateTime<Utc>>;
     fn payee_service_end_date(&self) -> Option<DateTime<Utc>>;
     fn payee_amount(&self) -> USD;
     fn previously_paid_amount(&self) -> USD;
+    fn process_account_code(&self) -> &'a AccountCode;
 
     fn days_in_payee_service_period(&self) -> i64 {
         let duration = self.payee_service_end_date().unwrap().signed_duration_since(self.payee_service_start_date().unwrap());
@@ -57,20 +58,18 @@ pub trait Transaction {
         }).collect()
     }
 
-    // TODO: Make an account code fetcher again
-    fn process(&self, _gl: &mut GeneralLedger) {
-        println!("wat");
-        // We're assessment (charge), write entries based on our account code
-        //self.process_daily_accrual(gl) // TODO no
-        //match self.account_code() {
-            //"4000" => self.process_daily_accrual(gl),
-            //"4050" => self.process_accrual(gl),
-            //"4051" => self.process_accrual(gl),
-            //"4100" => self.process_cash(gl),
-            //"4150" => self.process_accrual(gl),
-            //_ => println!("Fuck")
-        //}
+    fn process(&self, gl: &mut GeneralLedger) {
+        match self.process_account_code() {
+            &AccountCode::Base(ref _string) => println!("Can't process AC"),
+            &AccountCode::Daily(ref ac) => self.process_daily_accrual(ac, gl),
+            &AccountCode::Periodic(ref ac) => self.process_accrual(ac, gl),
+            &AccountCode::Cash(ref ac) => self.process_cash(ac, gl),
+        }
     }
+
+    fn process_cash(&self, payee_account_code: &CashAccount, gl: &mut GeneralLedger);
+    fn process_accrual(&self, payee_account_code: &AccrualAccount, gl: &mut GeneralLedger);
+    fn process_daily_accrual(&self, payee_account_code: &AccrualAccount, gl: &mut GeneralLedger);
 }
 
 #[cfg(test)]

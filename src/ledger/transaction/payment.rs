@@ -35,43 +35,6 @@ impl<'a> Payment<'a> {
         }
     }
 
-    fn process_cash(&self, payee_account_code: &CashAccount, gl: &mut GeneralLedger) {
-        gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &payee_account_code.revenue_code);
-    }
-
-    fn process_accrual(&self, payee_account_code: &AccrualAccount, gl: &mut GeneralLedger) {
-        if self.effective_on >= self.payee_effective_on {
-            gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &payee_account_code.accounts_receivable_code);
-        } else {
-            gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &payee_account_code.deferred_code);
-            gl.record_double_entry(self.payee_effective_on.naive_utc().date(), self.amount, &payee_account_code.deferred_code, &payee_account_code.accounts_receivable_code);
-        }
-    }
-
-    fn process_daily_accrual(&self, payee_account_code: &AccrualAccount, gl: &mut GeneralLedger) {
-        // Absolute garbage method name and placement
-        let (deferred_amount, leftover_days) = self.record_transaction_date_entries_and_return_deferred(payee_account_code, gl);
-
-        let mut deferred_amount_mut = deferred_amount;
-        for (date, amount) in leftover_days {
-            if deferred_amount_mut == USD::zero() {
-                break;
-            }
-            if amount <= deferred_amount_mut {
-                gl.record_double_entry(date.naive_utc().date(),
-                                        amount,
-                                        &payee_account_code.deferred_code,
-                                        &payee_account_code.accounts_receivable_code);
-                deferred_amount_mut -= amount;
-            } else {
-                gl.record_double_entry(date.naive_utc().date(),
-                                        deferred_amount_mut,
-                                        &payee_account_code.deferred_code,
-                                        &payee_account_code.accounts_receivable_code);
-                deferred_amount_mut = USD::zero();
-            }
-        }
-    }
     // This is gross, returning leftover amount and leftover days after recording payment day
     // entries AND it's Daily Accrual specific. Need to have a DA trait maybe? Idk. Does all this
     // belong on a DA account code? since our DA-ness is by account code.
@@ -110,7 +73,7 @@ impl<'a> Payment<'a> {
     }
 }
 
-impl<'a> Transaction for Payment<'a> {
+impl<'a> Transaction<'a> for Payment<'a> {
     fn previously_paid_amount(&self) -> USD {
         self.previously_paid_amount
     }
@@ -123,13 +86,45 @@ impl<'a> Transaction for Payment<'a> {
     fn payee_amount(&self) -> USD {
         self.payee_amount
     }
+    fn process_account_code(&self) -> &'a AccountCode {
+        self.payee_account_code
+    }
 
-    fn process(&self, gl: &mut GeneralLedger) {
-        match &self.payee_account_code {
-            &&AccountCode::Base(ref _string) => println!("Can't process AC"),
-            &&AccountCode::Daily(ref ac) => self.process_daily_accrual(ac, gl),
-            &&AccountCode::Periodic(ref ac) => self.process_accrual(ac, gl),
-            &&AccountCode::Cash(ref ac) => self.process_cash(ac, gl)
+    fn process_cash(&self, payee_account_code: &CashAccount, gl: &mut GeneralLedger) {
+        gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &payee_account_code.revenue_code);
+    }
+
+    fn process_accrual(&self, payee_account_code: &AccrualAccount, gl: &mut GeneralLedger) {
+        if self.effective_on >= self.payee_effective_on {
+            gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &payee_account_code.accounts_receivable_code);
+        } else {
+            gl.record_double_entry(self.effective_on.naive_utc().date(), self.amount, &self.account_code, &payee_account_code.deferred_code);
+            gl.record_double_entry(self.payee_effective_on.naive_utc().date(), self.amount, &payee_account_code.deferred_code, &payee_account_code.accounts_receivable_code);
+        }
+    }
+
+    fn process_daily_accrual(&self, payee_account_code: &AccrualAccount, gl: &mut GeneralLedger) {
+        // Absolute garbage method name and placement
+        let (deferred_amount, leftover_days) = self.record_transaction_date_entries_and_return_deferred(payee_account_code, gl);
+
+        let mut deferred_amount_mut = deferred_amount;
+        for (date, amount) in leftover_days {
+            if deferred_amount_mut == USD::zero() {
+                break;
+            }
+            if amount <= deferred_amount_mut {
+                gl.record_double_entry(date.naive_utc().date(),
+                                        amount,
+                                        &payee_account_code.deferred_code,
+                                        &payee_account_code.accounts_receivable_code);
+                deferred_amount_mut -= amount;
+            } else {
+                gl.record_double_entry(date.naive_utc().date(),
+                                        deferred_amount_mut,
+                                        &payee_account_code.deferred_code,
+                                        &payee_account_code.accounts_receivable_code);
+                deferred_amount_mut = USD::zero();
+            }
         }
     }
 }

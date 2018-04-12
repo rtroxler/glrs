@@ -21,8 +21,26 @@ impl<'a> Assessment<'a> {
         }
     }
 
+}
+
+impl<'a> Transaction<'a> for Assessment<'a> {
+    fn previously_paid_amount(&self) -> USD {
+        USD::zero()
+    }
+    fn payee_service_start_date(&self) -> Option<DateTime<Utc>> {
+        self.service_start_date
+    }
+    fn payee_service_end_date(&self) -> Option<DateTime<Utc>>  {
+        self.service_end_date
+    }
+    fn payee_amount(&self) -> USD {
+        self.amount
+    }
+    fn process_account_code(&self) -> &'a AccountCode {
+        self.account_code
+    }
+
     fn process_daily_accrual(&self, account_code: &AccrualAccount, gl: &mut GeneralLedger) {
-        // We're assessment (charge), write entries based on our account code
         for (date, amount) in self.payable_amounts_per_day() {
             gl.record_double_entry(date.naive_utc().date(),
                                    amount,
@@ -36,27 +54,5 @@ impl<'a> Assessment<'a> {
                                &account_code.accounts_receivable_code,
                                &account_code.revenue_code);
     }
-}
-
-impl<'a> Transaction for Assessment<'a> {
-    fn previously_paid_amount(&self) -> USD {
-        USD::zero()
-    }
-    fn payee_service_start_date(&self) -> Option<DateTime<Utc>> {
-        self.service_start_date
-    }
-    fn payee_service_end_date(&self) -> Option<DateTime<Utc>>  {
-        self.service_end_date
-    }
-    fn payee_amount(&self) -> USD {
-        self.amount
-    }
-    fn process(&self, gl: &mut GeneralLedger) {
-        match &self.account_code {
-            &&AccountCode::Base(ref _string) => println!("Can't process AC"),
-            &&AccountCode::Daily(ref ac) => self.process_daily_accrual(ac, gl),
-            &&AccountCode::Periodic(ref ac) => self.process_accrual(ac, gl),
-            &&AccountCode::Cash(ref ac) => println!("Cash {:?}", ac),
-        }
-    }
+    fn process_cash(&self, _account_code: &CashAccount, _gl: &mut GeneralLedger) {}
 }
