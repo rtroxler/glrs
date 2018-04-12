@@ -5,24 +5,22 @@ extern crate libc;
 
 #[macro_use]
 extern crate serde_derive;
-
 extern crate serde;
 extern crate serde_json;
 
 extern crate chrono;
-
-
-mod ledger;
-use ledger::general_ledger::GeneralLedger;
-
-mod input;
-use input::InputLedger;
 
 mod usd;
 mod account_map;
 mod chart_of_accounts;
 
 mod conversions;
+
+mod ledger;
+use ledger::general_ledger::GeneralLedger;
+
+mod input;
+use input::InputLedger;
 
 #[no_mangle]
 pub extern "C" fn rust_perform(c_ptr: *const libc::c_char) -> *const libc::c_char {
@@ -32,7 +30,7 @@ pub extern "C" fn rust_perform(c_ptr: *const libc::c_char) -> *const libc::c_cha
     let input_ledger = input.ledger;
 
     // TODO: This shouldn't be on ledger, probably
-    let chart = ledger::Ledger::chart_of_accounts();
+    let chart = chart_of_accounts::ChartOfAccounts::cubesmart();
     let ledger = input_ledger.into_ledger(&chart);
 
     let result = OutputArg {

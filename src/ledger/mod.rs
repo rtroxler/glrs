@@ -1,11 +1,12 @@
 pub mod general_ledger;
 pub mod transaction;
-use ledger::general_ledger::GeneralLedger;
-//use ledger::transaction::*;
-use ledger::transaction::assessment::Assessment;
-use ledger::transaction::payment::Payment;
-use ledger::transaction::Transaction;
-use chart_of_accounts::{AccountCode, ChartOfAccounts, CashAccount, AccrualAccount};
+
+use ledger::{
+    transaction::assessment::Assessment,
+    transaction::payment::Payment,
+    transaction::Transaction,
+    general_ledger::GeneralLedger
+};
 
 
 
@@ -23,35 +24,7 @@ impl<'a> Ledger<'a> {
         }
     }
 
-    pub fn chart_of_accounts() -> ChartOfAccounts<'a> {
-        let rent = AccountCode::Daily(AccrualAccount {
-            revenue_code: String::from("4000"), accounts_receivable_code: String::from("1101"), deferred_code: String::from("2020")
-        });
-        let fee = AccountCode::Periodic(AccrualAccount {
-            revenue_code: String::from("4050"), accounts_receivable_code: String::from("1104"), deferred_code: String::from("")
-        });
-        let fee2 = AccountCode::Periodic(AccrualAccount {
-            revenue_code: String::from("4051"), accounts_receivable_code: String::from("1104"), deferred_code: String::from("")
-        });
-        let service = AccountCode::Periodic(AccrualAccount {
-            revenue_code: String::from("4150"), accounts_receivable_code: String::from("1103"), deferred_code: String::from("2023")
-        });
-        let insurance = AccountCode::Cash(CashAccount {
-            revenue_code: String::from("4100")
-        });
-        let mut chart = ChartOfAccounts::new();
-
-        chart.table.insert("4000", rent);
-        chart.table.insert("4050", fee);
-        chart.table.insert("4051", fee2);
-        chart.table.insert("4150", service);
-        chart.table.insert("4100", insurance);
-        chart
-    }
-
     pub fn process_general_ledger(&self) -> GeneralLedger {
-        // create chart of accounts
-        //chart_of_accounts.play();
         let mut general_ledger = GeneralLedger::new();
 
         for assessment in &self.assessments {
@@ -72,9 +45,11 @@ mod ledger_tests {
     //extern crate chrono;
     //use chrono::prelude::*;
     //use usd::USD;
+    //use chart_of_accounts::{AccountCode, ChartOfAccounts, CashAccount, AccrualAccount};
 
     #[test]
     fn ledger_can_build_from_an_input_ledger() {
+        // TODO
     }
 
     #[test]

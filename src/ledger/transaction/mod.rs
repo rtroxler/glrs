@@ -80,35 +80,9 @@ mod integration_tests {
     use ledger::transaction::payment::Payment;
     use chart_of_accounts::ChartOfAccounts;
 
-    fn chart_of_accounts<'a>() -> ChartOfAccounts<'a> {
-        let rent = AccountCode::Daily(AccrualAccount {
-            revenue_code: String::from("4000"), accounts_receivable_code: String::from("1101"), deferred_code: String::from("2020")
-        });
-        let fee = AccountCode::Periodic(AccrualAccount {
-            revenue_code: String::from("4050"), accounts_receivable_code: String::from("1104"), deferred_code: String::from("")
-        });
-        let fee2 = AccountCode::Periodic(AccrualAccount {
-            revenue_code: String::from("4051"), accounts_receivable_code: String::from("1104"), deferred_code: String::from("")
-        });
-        let service = AccountCode::Periodic(AccrualAccount {
-            revenue_code: String::from("4150"), accounts_receivable_code: String::from("1103"), deferred_code: String::from("2023")
-        });
-        let insurance = AccountCode::Cash(CashAccount {
-            revenue_code: String::from("4100")
-        });
-        let mut chart = ChartOfAccounts::new();
-
-        chart.table.insert("4000", rent);
-        chart.table.insert("4050", fee);
-        chart.table.insert("4051", fee2);
-        chart.table.insert("4150", service);
-        chart.table.insert("4100", insurance);
-        chart
-    }
-
     #[test]
     fn test_rent_account_balance_accrues_daily() {
-        let chart = chart_of_accounts();
+        let chart = ChartOfAccounts::cubesmart();
 
         println!("setup");
         let rent_charge = Assessment::new(
@@ -139,7 +113,7 @@ mod integration_tests {
 
     #[test]
     fn test_cash_based_account_balance_records_nothing_on_assessment() {
-        let chart = chart_of_accounts();
+        let chart = ChartOfAccounts::cubesmart();
         let insurance_charge = Assessment::new(
             USD::from_float(12.0),
             &chart.get("4100").unwrap(),
@@ -156,7 +130,7 @@ mod integration_tests {
 
     #[test]
     fn test_cash_based_account_balance_records_entries_on_payment() {
-        let chart = chart_of_accounts();
+        let chart = ChartOfAccounts::cubesmart();
         let insurance_charge = Assessment::new(
             USD::from_float(12.0),
             &chart.get("4100").unwrap(),
@@ -191,7 +165,7 @@ mod integration_tests {
 
     #[test]
     fn test_fee_account_balance_accrues_periodically() {
-        let chart = chart_of_accounts();
+        let chart = ChartOfAccounts::cubesmart();
         let fee_charge = Assessment::new(
             USD::from_float(30.0),
             &chart.get("4050").unwrap(),
@@ -212,7 +186,7 @@ mod integration_tests {
 
     #[test]
     fn test_fee_account_balance_accrues_and_is_paid_periodically() {
-        let chart = chart_of_accounts();
+        let chart = ChartOfAccounts::cubesmart();
         let fee_charge = Assessment::new(
             USD::from_float(30.0),
             &chart.get("4050").unwrap(),
@@ -248,7 +222,7 @@ mod integration_tests {
 
     #[test]
     fn test_a_full_payment_against_rent() {
-        let chart = chart_of_accounts();
+        let chart = ChartOfAccounts::cubesmart();
         let mut gl = GeneralLedger::new();
 
         let rent_charge = Assessment::new(
@@ -293,7 +267,7 @@ mod integration_tests {
 
     #[test]
     fn test_a_full_payment_against_future_daily_accrual_assessment() {
-        let chart = chart_of_accounts();
+        let chart = ChartOfAccounts::cubesmart();
         let mut gl = GeneralLedger::new();
 
         let rent_charge = Assessment::new(
@@ -337,7 +311,7 @@ mod integration_tests {
 
     #[test]
     fn test_a_full_payment_against_future_accrual_assessment() {
-        let chart = chart_of_accounts();
+        let chart = ChartOfAccounts::cubesmart();
         let mut gl = GeneralLedger::new();
 
         let service_charge = Assessment::new(
@@ -374,7 +348,7 @@ mod integration_tests {
 
     #[test]
     fn test_two_even_partial_payments_against_rent() {
-        let chart = chart_of_accounts();
+        let chart = ChartOfAccounts::cubesmart();
         let mut gl = GeneralLedger::new();
 
         let rent_charge = Assessment::new(
