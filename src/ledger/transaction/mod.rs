@@ -2,7 +2,6 @@ extern crate chrono;
 use chrono::prelude::*;
 
 use usd::USD;
-use account_map;
 use ledger::general_ledger::GeneralLedger;
 use chart_of_accounts::AccountCode;
 use chart_of_accounts::CashAccount;
@@ -10,15 +9,6 @@ use chart_of_accounts::AccrualAccount;
 
 pub mod assessment;
 pub mod payment;
-
-// Will not work
-// Can't access data without pattern matching it out, which then moves it.
-// Not the solution I'm looking for
-// enum Transaction  {
-// Payment { },
-//Assessment { }
-//}
-
 
 //Void?
 //Do we need a credit transaction? Can it just be made a part of payee_discount_amount?
@@ -67,11 +57,7 @@ pub trait Transaction {
         }).collect()
     }
 
-    // Process
-    //fn process_daily_accrual(&self, gl: &mut GeneralLedger);
-    //fn process_accrual(&self, gl: &mut GeneralLedger);
-    //fn process_cash(&self, gl: &mut GeneralLedger);
-
+    // TODO: Make an account code fetcher again
     fn process(&self, _gl: &mut GeneralLedger) {
         println!("wat");
         // We're assessment (charge), write entries based on our account code
@@ -92,17 +78,42 @@ mod integration_tests {
     use super::*;
     use ledger::transaction::assessment::Assessment;
     use ledger::transaction::payment::Payment;
+    use chart_of_accounts::ChartOfAccounts;
+
+    fn chart_of_accounts<'a>() -> ChartOfAccounts<'a> {
+        let rent = AccountCode::Daily(AccrualAccount {
+            revenue_code: String::from("4000"), accounts_receivable_code: String::from("1101"), deferred_code: String::from("2020")
+        });
+        let fee = AccountCode::Periodic(AccrualAccount {
+            revenue_code: String::from("4050"), accounts_receivable_code: String::from("1104"), deferred_code: String::from("")
+        });
+        let fee2 = AccountCode::Periodic(AccrualAccount {
+            revenue_code: String::from("4051"), accounts_receivable_code: String::from("1104"), deferred_code: String::from("")
+        });
+        let service = AccountCode::Periodic(AccrualAccount {
+            revenue_code: String::from("4150"), accounts_receivable_code: String::from("1103"), deferred_code: String::from("2023")
+        });
+        let insurance = AccountCode::Cash(CashAccount {
+            revenue_code: String::from("4100")
+        });
+        let mut chart = ChartOfAccounts::new();
+
+        chart.table.insert("4000", rent);
+        chart.table.insert("4050", fee);
+        chart.table.insert("4051", fee2);
+        chart.table.insert("4150", service);
+        chart.table.insert("4100", insurance);
+        chart
+    }
 
     #[test]
     fn test_rent_account_balance_accrues_daily() {
+        let chart = chart_of_accounts();
+
         println!("setup");
         let rent_charge = Assessment::new(
             USD::from_float(30.0),
-            AccountCode::Daily(AccrualAccount {
-               revenue_code: String::from("4000"),
-               accounts_receivable_code: String::from("1101"),
-               deferred_code: String::from("2020")
-            }),
+            &chart.get("4000").unwrap(),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -128,11 +139,10 @@ mod integration_tests {
 
     #[test]
     fn test_cash_based_account_balance_records_nothing_on_assessment() {
+        let chart = chart_of_accounts();
         let insurance_charge = Assessment::new(
             USD::from_float(12.0),
-            AccountCode::Cash(CashAccount {
-               revenue_code: String::from("4100"),
-            }),
+            &chart.get("4100").unwrap(),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -146,11 +156,10 @@ mod integration_tests {
 
     #[test]
     fn test_cash_based_account_balance_records_entries_on_payment() {
+        let chart = chart_of_accounts();
         let insurance_charge = Assessment::new(
             USD::from_float(12.0),
-            AccountCode::Cash(CashAccount {
-               revenue_code: String::from("4100"),
-            }),
+            &chart.get("4100").unwrap(),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -166,9 +175,7 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             USD::from_float(12.0),
-            AccountCode::Cash(CashAccount {
-               revenue_code: String::from("4100"),
-            }),
+            &chart.get("4100").unwrap(),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -184,13 +191,10 @@ mod integration_tests {
 
     #[test]
     fn test_fee_account_balance_accrues_periodically() {
+        let chart = chart_of_accounts();
         let fee_charge = Assessment::new(
             USD::from_float(30.0),
-            AccountCode::Periodic(AccrualAccount {
-               revenue_code: String::from("4050"),
-               accounts_receivable_code: String::from("1104"),
-               deferred_code: String::from("")
-            }),
+            &chart.get("4050").unwrap(),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             None,
             None,
@@ -208,13 +212,10 @@ mod integration_tests {
 
     #[test]
     fn test_fee_account_balance_accrues_and_is_paid_periodically() {
+        let chart = chart_of_accounts();
         let fee_charge = Assessment::new(
             USD::from_float(30.0),
-            AccountCode::Periodic(AccrualAccount {
-               revenue_code: String::from("4050"),
-               accounts_receivable_code: String::from("1104"),
-               deferred_code: String::from("")
-            }),
+            &chart.get("4050").unwrap(),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             None,
             None,
@@ -225,11 +226,7 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            AccountCode::Periodic(AccrualAccount {
-               revenue_code: String::from("4050"),
-               accounts_receivable_code: String::from("1104"),
-               deferred_code: String::from("")
-            }),
+            &chart.get("4050").unwrap(),
             None,
             None,
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -251,15 +248,12 @@ mod integration_tests {
 
     #[test]
     fn test_a_full_payment_against_rent() {
+        let chart = chart_of_accounts();
         let mut gl = GeneralLedger::new();
 
         let rent_charge = Assessment::new(
             USD::from_float(30.0),
-            AccountCode::Daily(AccrualAccount {
-               revenue_code: String::from("4000"),
-               accounts_receivable_code: String::from("1101"),
-               deferred_code: String::from("2020")
-            }),
+            &chart.get("4000").unwrap(),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -270,11 +264,7 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            AccountCode::Daily(AccrualAccount {
-               revenue_code: String::from("4000"),
-               accounts_receivable_code: String::from("1101"),
-               deferred_code: String::from("2020")
-            }),
+            &chart.get("4000").unwrap(),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -303,15 +293,12 @@ mod integration_tests {
 
     #[test]
     fn test_a_full_payment_against_future_daily_accrual_assessment() {
+        let chart = chart_of_accounts();
         let mut gl = GeneralLedger::new();
 
         let rent_charge = Assessment::new(
             USD::from_float(30.0),
-            AccountCode::Daily(AccrualAccount {
-               revenue_code: String::from("4000"),
-               accounts_receivable_code: String::from("1101"),
-               deferred_code: String::from("2020")
-            }),
+            &chart.get("4000").unwrap(),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -322,11 +309,7 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 10, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            AccountCode::Daily(AccrualAccount {
-               revenue_code: String::from("4000"),
-               accounts_receivable_code: String::from("1101"),
-               deferred_code: String::from("2020")
-            }),
+            &chart.get("4000").unwrap(),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -354,15 +337,12 @@ mod integration_tests {
 
     #[test]
     fn test_a_full_payment_against_future_accrual_assessment() {
+        let chart = chart_of_accounts();
         let mut gl = GeneralLedger::new();
 
         let service_charge = Assessment::new(
             USD::from_float(30.0),
-            AccountCode::Periodic(AccrualAccount {
-               revenue_code: String::from("4150"),
-               accounts_receivable_code: String::from("1103"),
-               deferred_code: String::from("2023")
-            }),
+            &chart.get("4150").unwrap(),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -373,11 +353,7 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 10, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            AccountCode::Periodic(AccrualAccount {
-               revenue_code: String::from("4150"),
-               accounts_receivable_code: String::from("1103"),
-               deferred_code: String::from("2023")
-            }),
+            &chart.get("4150").unwrap(),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -398,15 +374,12 @@ mod integration_tests {
 
     #[test]
     fn test_two_even_partial_payments_against_rent() {
+        let chart = chart_of_accounts();
         let mut gl = GeneralLedger::new();
 
         let rent_charge = Assessment::new(
             USD::from_float(30.0),
-            AccountCode::Daily(AccrualAccount {
-               revenue_code: String::from("4000"),
-               accounts_receivable_code: String::from("1101"),
-               deferred_code: String::from("2020")
-            }),
+            &chart.get("4000").unwrap(),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
@@ -417,11 +390,7 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            AccountCode::Daily(AccrualAccount {
-               revenue_code: String::from("4000"),
-               accounts_receivable_code: String::from("1101"),
-               deferred_code: String::from("2020")
-            }),
+            &chart.get("4000").unwrap(),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
@@ -434,11 +403,7 @@ mod integration_tests {
             String::from("1000"),
             Utc.ymd(2017, 11, 1).and_hms(0,0,0),
             USD::from_float(30.0),
-            AccountCode::Daily(AccrualAccount {
-               revenue_code: String::from("4000"),
-               accounts_receivable_code: String::from("1101"),
-               deferred_code: String::from("2020")
-            }),
+            &chart.get("4000").unwrap(),
             Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
             Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
             Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?

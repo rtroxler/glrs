@@ -1,17 +1,17 @@
 use super::*;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Assessment {
+#[derive(Debug)]
+pub struct Assessment<'a> {
     amount: USD,
-    account_code: AccountCode,
+    account_code: &'a AccountCode,
     pub effective_on: DateTime<Utc>,
     pub service_start_date: Option<DateTime<Utc>>, // TODO Should really be Date instead
     pub service_end_date: Option<DateTime<Utc>>, // TODO Should really be Date instead
 }
 
-impl Assessment {
-    pub fn new(amount: USD, account_code: AccountCode, effective_on: DateTime<Utc>,
-               service_start_date: Option<DateTime<Utc>>, service_end_date: Option<DateTime<Utc>>) -> Assessment {
+impl<'a> Assessment<'a> {
+    pub fn new(amount: USD, account_code: &'a AccountCode, effective_on: DateTime<Utc>,
+               service_start_date: Option<DateTime<Utc>>, service_end_date: Option<DateTime<Utc>>) -> Assessment<'a> {
         Assessment {
             amount: amount,
             account_code: account_code,
@@ -38,7 +38,7 @@ impl Assessment {
     }
 }
 
-impl Transaction for Assessment {
+impl<'a> Transaction for Assessment<'a> {
     fn previously_paid_amount(&self) -> USD {
         USD::zero()
     }
@@ -53,10 +53,10 @@ impl Transaction for Assessment {
     }
     fn process(&self, gl: &mut GeneralLedger) {
         match &self.account_code {
-            &AccountCode::Base(ref string) => println!("Can't process AC"),
-            &AccountCode::Daily(ref ac) => self.process_daily_accrual(ac, gl),
-            &AccountCode::Periodic(ref ac) => self.process_accrual(ac, gl),
-            &AccountCode::Cash(ref ac) => println!("Cash {:?}", ac),
+            &&AccountCode::Base(ref _string) => println!("Can't process AC"),
+            &&AccountCode::Daily(ref ac) => self.process_daily_accrual(ac, gl),
+            &&AccountCode::Periodic(ref ac) => self.process_accrual(ac, gl),
+            &&AccountCode::Cash(ref ac) => println!("Cash {:?}", ac),
         }
     }
 }

@@ -1,12 +1,12 @@
 use super::*;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Payment {
+#[derive(Debug)]
+pub struct Payment<'a> {
     amount: USD,
     account_code: String,
     pub effective_on: DateTime<Utc>,
     payee_amount: USD,
-    payee_account_code: AccountCode,
+    payee_account_code: &'a AccountCode,
     payee_service_start_date: Option<DateTime<Utc>>,
     payee_service_end_date: Option<DateTime<Utc>>,
     payee_effective_on: DateTime<Utc>,
@@ -15,10 +15,10 @@ pub struct Payment {
     //payee_discount_amount
 }
 
-impl Payment {
+impl<'a> Payment<'a> {
     // TODO I hate this, not having key value args when calling new sucks
     pub fn new( amount: USD, account_code: String, effective_on: DateTime<Utc>, payee_amount: USD,
-                payee_account_code: AccountCode, payee_service_start_date: Option<DateTime<Utc>>,
+                payee_account_code: &'a AccountCode, payee_service_start_date: Option<DateTime<Utc>>,
                 payee_service_end_date: Option<DateTime<Utc>>, payee_effective_on: DateTime<Utc>,
                 payee_resolved_on: Option<DateTime<Utc>>, previously_paid_amount: USD) -> Payment {
         Payment {
@@ -110,7 +110,7 @@ impl Payment {
     }
 }
 
-impl Transaction for Payment {
+impl<'a> Transaction for Payment<'a> {
     fn previously_paid_amount(&self) -> USD {
         self.previously_paid_amount
     }
@@ -126,10 +126,10 @@ impl Transaction for Payment {
 
     fn process(&self, gl: &mut GeneralLedger) {
         match &self.payee_account_code {
-            &AccountCode::Base(ref string) => println!("Can't process AC"),
-            &AccountCode::Daily(ref ac) => self.process_daily_accrual(ac, gl),
-            &AccountCode::Periodic(ref ac) => self.process_accrual(ac, gl),
-            &AccountCode::Cash(ref ac) => self.process_cash(ac, gl)
+            &&AccountCode::Base(ref _string) => println!("Can't process AC"),
+            &&AccountCode::Daily(ref ac) => self.process_daily_accrual(ac, gl),
+            &&AccountCode::Periodic(ref ac) => self.process_accrual(ac, gl),
+            &&AccountCode::Cash(ref ac) => self.process_cash(ac, gl)
         }
     }
 }
