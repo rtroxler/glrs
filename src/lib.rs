@@ -11,7 +11,6 @@ extern crate serde_json;
 extern crate chrono;
 
 mod usd;
-mod account_map;
 mod chart_of_accounts;
 
 mod conversions;
