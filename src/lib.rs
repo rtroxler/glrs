@@ -15,6 +15,7 @@ mod ledger;
 use ledger::general_ledger::GeneralLedger;
 mod usd;
 mod account_map;
+mod chart_of_accounts;
 
 mod conversions;
 
