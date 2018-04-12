@@ -9,6 +9,7 @@ use chart_of_accounts::AccrualAccount;
 
 pub mod assessment;
 pub mod payment;
+pub mod void_assessment;
 
 //Void?
 //Do we need a credit transaction? Can it just be made a part of payee_discount_amount?

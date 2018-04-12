@@ -2,6 +2,7 @@ extern crate glrs;
 use glrs::ledger::{
     transaction::assessment::Assessment,
     transaction::payment::Payment,
+    transaction::void_assessment::VoidAssessment,
     transaction::Transaction,
     general_ledger::GeneralLedger
 };
@@ -197,6 +198,85 @@ fn test_two_even_partial_payments_against_rent() {
             .expect("Overflow");
     }
 }
+
+
+#[test]
+fn void_a_rent_charge() {
+    let chart = ChartOfAccounts::cubesmart();
+    let mut gl = GeneralLedger::new();
+
+    let rent_charge = common::daily_accrual_assesment(&chart);
+
+    rent_charge.process(&mut gl);
+    let start = rent_charge.service_start_date.unwrap().naive_utc().date();
+    let end = rent_charge.service_end_date.unwrap().naive_utc().date();
+
+    let mut date_stepper = start;
+    // Pre void
+    while date_stepper <= end {
+        assert_eq!(gl.fetch_amount(date_stepper, String::from("1101")), Some(&USD::from_float(1.0)));
+        assert_eq!(gl.fetch_amount(date_stepper, String::from("4000")), Some(&USD::from_float(-1.0)));
+
+        date_stepper = date_stepper.checked_add_signed(chrono::Duration::days(1))
+            .expect("Overflow");
+    }
+
+    let void = VoidAssessment::new(
+        USD::from_float(-30.0),
+        Utc.ymd(2017, 11, 3).and_hms(0,0,0),
+        USD::from_float(30.0),
+        &chart.get("4000").unwrap(),
+        Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
+        Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
+        Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
+    );
+
+    void.process(&mut gl);
+
+    assert_eq!(gl.fetch_amount(void.effective_on.naive_utc().date(), String::from("1101")), Some(&USD::from_float(-2.0)));
+    assert_eq!(gl.fetch_amount(void.effective_on.naive_utc().date(), String::from("4000")), Some(&USD::from_float(2.0)));
+
+    let mut date_stepper = start.checked_add_signed(chrono::Duration::days(3)).expect("Overflow");
+    // Pre void
+    while date_stepper <= end {
+        assert_eq!(gl.fetch_amount(date_stepper, String::from("1101")), Some(&USD::from_float(0.0)));
+        assert_eq!(gl.fetch_amount(date_stepper, String::from("4000")), Some(&USD::from_float(0.0)));
+
+        date_stepper = date_stepper.checked_add_signed(chrono::Duration::days(1))
+            .expect("Overflow");
+    }
+}
+
+#[test]
+fn voids_a_fee() {
+    let chart = ChartOfAccounts::cubesmart();
+    let mut gl = GeneralLedger::new();
+
+    let fee_charge = common::accrual_assessment(&chart, "4050");
+
+    fee_charge.process(&mut gl);
+
+    assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("1104")), Some(&USD::from_float(30.0)));
+    assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("4050")), Some(&USD::from_float(-30.0)));
+
+    let void = VoidAssessment::new(
+        USD::from_float(-30.0),
+        Utc.ymd(2017, 11, 3).and_hms(0,0,0),
+        USD::from_float(30.0),
+        &chart.get("4050").unwrap(),
+        Some(Utc.ymd(2017, 11, 1).and_hms(0,0,0)),
+        Some(Utc.ymd(2017, 11, 30).and_hms(0,0,0)),
+        Utc.ymd(2017,11,1).and_hms(0,0,0), // Is this needed?
+    );
+
+    void.process(&mut gl);
+
+    assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("1104")), Some(&USD::from_float(30.0)));
+    assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("4050")), Some(&USD::from_float(-30.0)));
+    assert_eq!(gl.fetch_amount(void.effective_on.naive_utc().date(), String::from("1104")), Some(&USD::from_float(-30.0)));
+    assert_eq!(gl.fetch_amount(void.effective_on.naive_utc().date(), String::from("4050")), Some(&USD::from_float(30.0)));
+}
+
 
 
 // TODO
