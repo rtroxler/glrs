@@ -10,12 +10,12 @@ extern crate serde_json;
 
 extern crate chrono;
 
-mod usd;
-mod chart_of_accounts;
+pub mod usd;
+pub mod chart_of_accounts;
 
 mod conversions;
 
-mod ledger;
+pub mod ledger;
 use ledger::general_ledger::GeneralLedger;
 
 mod input;
