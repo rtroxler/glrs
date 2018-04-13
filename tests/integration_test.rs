@@ -1,5 +1,6 @@
 extern crate glrs;
 use glrs::ledger::{
+    Ledger,
     transaction::assessment::Assessment,
     transaction::payment::Payment,
     transaction::void_assessment::VoidAssessment,
@@ -275,6 +276,21 @@ fn voids_a_fee() {
     assert_eq!(gl.fetch_amount(fee_charge.effective_on.naive_utc().date(), String::from("4050")), Some(&USD::from_float(-30.0)));
     assert_eq!(gl.fetch_amount(void.effective_on.naive_utc().date(), String::from("1104")), Some(&USD::from_float(-30.0)));
     assert_eq!(gl.fetch_amount(void.effective_on.naive_utc().date(), String::from("4050")), Some(&USD::from_float(30.0)));
+}
+
+#[test]
+fn ledger_records_time_to_calculate_all_transactions() {
+    let chart = ChartOfAccounts::cubesmart();
+    let rent_charge = common::daily_accrual_assesment(&chart);
+    let assessments = vec![rent_charge];
+
+    let payment1 = common::basic_payment(15.0, 0.0, "4000", &chart);
+    let payment2 = common::basic_payment(15.0, 15.0, "4000", &chart);
+    let payments = vec![payment1, payment2];
+
+    let ledger = Ledger::new(assessments, Vec::new(), payments);
+    let (_gl, duration_micro) = ledger.process_general_ledger();
+    assert!(duration_micro > 0);
 }
 
 

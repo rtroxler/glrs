@@ -1,5 +1,7 @@
 pub mod general_ledger;
 pub mod transaction;
+extern crate chrono;
+use chrono::prelude::*; //TODO why *
 
 use ledger::{
     transaction::assessment::Assessment,
@@ -27,7 +29,8 @@ impl<'a> Ledger<'a> {
         }
     }
 
-    pub fn process_general_ledger(&self) -> GeneralLedger {
+    pub fn process_general_ledger(&self) -> (GeneralLedger, i64) {
+        let start: DateTime<Utc> = chrono::Utc::now();
         let mut general_ledger = GeneralLedger::new();
 
         for assessment in &self.assessments {
@@ -42,7 +45,10 @@ impl<'a> Ledger<'a> {
             payment.process(&mut general_ledger);
         }
 
-        general_ledger
+        let end: DateTime<Utc> = chrono::Utc::now();
+        let duration_micro = end.signed_duration_since(start).num_microseconds().unwrap();
+        println!("Duration in microseconds: {:?}", duration_micro);
+        (general_ledger, duration_micro)
     }
 }
 

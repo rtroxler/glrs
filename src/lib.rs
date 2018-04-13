@@ -32,8 +32,10 @@ pub extern "C" fn rust_perform(c_ptr: *const libc::c_char) -> *const libc::c_cha
     let chart = chart_of_accounts::ChartOfAccounts::cubesmart();
     let ledger = input_ledger.into_ledger(&chart);
 
+    let (gl, duration) = ledger.process_general_ledger();
     let result = OutputArg {
-        general_ledger: ledger.process_general_ledger()
+        general_ledger: gl,
+        duration_in_microseconds: duration
     };
 
     let string_result = result.to_json();
@@ -61,7 +63,8 @@ impl InputArgs {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct OutputArg {
-    general_ledger: GeneralLedger
+    general_ledger: GeneralLedger,
+    duration_in_microseconds: i64
 }
 
 impl  OutputArg {
