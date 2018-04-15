@@ -3,6 +3,7 @@ pub mod transaction;
 
 use ledger::{
     transaction::assessment::Assessment,
+    transaction::void_assessment::VoidAssessment,
     transaction::payment::Payment,
     transaction::Transaction,
     general_ledger::GeneralLedger
@@ -13,13 +14,15 @@ use ledger::{
 #[derive(Debug)]
 pub struct Ledger<'a> {
     pub assessments: Vec<Assessment<'a>>,
+    pub void_assessments: Vec<VoidAssessment<'a>>,
     pub payments: Vec<Payment<'a>>
 }
 
 impl<'a> Ledger<'a> {
-    pub fn new(assessments: Vec<Assessment<'a>>, payments: Vec<Payment<'a>>) -> Ledger<'a> {
+    pub fn new(assessments: Vec<Assessment<'a>>, void_assessments: Vec<VoidAssessment<'a>>, payments: Vec<Payment<'a>>) -> Ledger<'a> {
         Ledger {
             assessments: assessments,
+            void_assessments: void_assessments,
             payments: payments
         }
     }
@@ -29,6 +32,10 @@ impl<'a> Ledger<'a> {
 
         for assessment in &self.assessments {
             assessment.process(&mut general_ledger);
+        }
+
+        for void_assessment in &self.void_assessments {
+            void_assessment.process(&mut general_ledger);
         }
 
         for payment in &self.payments {

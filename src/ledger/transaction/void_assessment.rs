@@ -38,7 +38,7 @@ impl<'a> Transaction<'a> for VoidAssessment<'a> {
         self.payee_service_end_date
     }
     fn payee_amount(&self) -> USD {
-        self.amount
+        self.amount // TODO not actually the payee amount, is this a sign that we shouldn't be using payable_amounts_per_day?
     }
     fn process_account_code(&self) -> &'a AccountCode {
         self.payee_account_code

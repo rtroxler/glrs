@@ -31,9 +31,10 @@ pub trait Transaction<'a> {
     //// Or not even write it? Maybe this? Other account balances (write off, prorate, etc) would
     //// take care of the rest?
     fn payable_amounts_per_day(&self) -> Vec<(DateTime<Utc>, USD)> {
-        // TODO: Worry about negative numbers at some point?
-        let spd = self.payee_amount().pennies / self.days_in_payee_service_period();
-        let mut leftover = self.payee_amount().pennies % self.days_in_payee_service_period();
+        let negative_amount = self.payee_amount().pennies < 0;
+        let amount = self.payee_amount().pennies.abs();
+        let spd = amount / self.days_in_payee_service_period();
+        let mut leftover = amount % self.days_in_payee_service_period();
 
         let mut already_paid_amount = self.previously_paid_amount().to_pennies();
 
@@ -52,6 +53,10 @@ pub trait Transaction<'a> {
                     day_amount = already_paid_amount;
                     already_paid_amount = 0;
                 }
+            }
+
+            if negative_amount {
+                day_amount = -day_amount;
             }
 
             (self.payee_service_start_date().unwrap() + chrono::Duration::days(day as i64),
