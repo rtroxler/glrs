@@ -16,13 +16,6 @@ pub struct AccrualAccount {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct DailyAccrualAccount {
-    pub revenue_code: String,
-    pub accounts_receivable_code: String,
-    pub deferred_code: String
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct CashAccount {
     pub revenue_code: String
 }
