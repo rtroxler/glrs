@@ -200,6 +200,35 @@ fn test_two_even_partial_payments_against_rent() {
     }
 }
 
+#[test]
+fn test_two_uneven_partial_payments_against_rent() {
+    let chart = ChartOfAccounts::cubesmart();
+    let mut gl = GeneralLedger::new();
+
+    let rent_charge = common::daily_accrual_assesment(&chart);
+
+    let payment1 = common::basic_payment(15.5, 0.0, "4000", &chart);
+    let payment2 = common::basic_payment(14.5, 15.5, "4000", &chart);
+
+    rent_charge.process(&mut gl);
+    payment1.process(&mut gl);
+    payment2.process(&mut gl);
+
+    assert_eq!(gl.fetch_amount(payment1.effective_on.naive_utc().date(), String::from("1000")), Some(&USD::from_float(30.0)));
+    assert_eq!(gl.fetch_amount(payment1.effective_on.naive_utc().date(), String::from("2020")), Some(&USD::from_float(-29.0)));
+    assert_eq!(gl.fetch_amount(payment1.effective_on.naive_utc().date(), String::from("4000")), Some(&USD::from_float(-1.0)));
+
+    let start = rent_charge.service_start_date.unwrap().naive_utc().date();
+    let end = rent_charge.service_end_date.unwrap().naive_utc().date();
+    let mut date_stepper = start.checked_add_signed(chrono::Duration::days(1)).expect("Overflow");
+    while date_stepper <= end {
+        assert_eq!(gl.fetch_amount(date_stepper, String::from("2020")), Some(&USD::from_float(1.0)));
+        assert_eq!(gl.fetch_amount(date_stepper, String::from("4000")), Some(&USD::from_float(-1.0)));
+
+        date_stepper = date_stepper.checked_add_signed(chrono::Duration::days(1))
+            .expect("Overflow");
+    }
+}
 
 #[test]
 fn void_a_rent_charge() {
@@ -297,11 +326,7 @@ fn ledger_records_time_to_calculate_all_transactions() {
 
 // TODO
 // payments
-// 15 + 15 upfront
-// 15 + 15 with second on day 20
-// 15.5 + 14.5
 // 15 + 15, void the first
-// void in general
 //
 // credits
 // refunds
