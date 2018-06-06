@@ -1,39 +1,36 @@
 use chrono::prelude::*;
 
 use chart_of_accounts::ChartOfAccounts;
-use ledger::{
-    Ledger,
-    transaction::{
-        assessment::Assessment,
-        void_assessment::VoidAssessment,
-        payment::Payment
-    }
-};
+use ledger::{transaction::{assessment::Assessment, payment::Payment,
+                           void_assessment::VoidAssessment},
+             Ledger};
 use usd::USD;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InputLedger {
     assessments: Vec<InputAssessment>,
     void_assessments: Vec<InputVoidAssessment>,
-    payments: Vec<InputPayment>
+    payments: Vec<InputPayment>,
 }
 
 impl InputLedger {
     pub fn into_ledger<'a>(self, chart: &'a ChartOfAccounts) -> Ledger<'a> {
-        let assessments: Vec<Assessment> = self.assessments.into_iter().map(|ass|
-            ass.into_assessment(&chart)
-        ).collect();
-        let void_assessments: Vec<VoidAssessment> = self.void_assessments.into_iter().map(|void_ass|
-            void_ass.into_void_assessment(&chart)
-        ).collect();
-        let payments: Vec<Payment> = self.payments.into_iter().map(|payment|
-            payment.into_payment(&chart)
-        ).collect();
+        let assessments: Vec<Assessment> = self.assessments
+            .into_iter()
+            .map(|ass| ass.into_assessment(&chart))
+            .collect();
+        let void_assessments: Vec<VoidAssessment> = self.void_assessments
+            .into_iter()
+            .map(|void_ass| void_ass.into_void_assessment(&chart))
+            .collect();
+        let payments: Vec<Payment> = self.payments
+            .into_iter()
+            .map(|payment| payment.into_payment(&chart))
+            .collect();
 
         Ledger::new(assessments, void_assessments, payments)
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InputAssessment {
@@ -41,7 +38,7 @@ pub struct InputAssessment {
     account_code: String,
     pub effective_on: DateTime<Utc>,
     pub service_start_date: Option<DateTime<Utc>>, // TODO Should really be Date instead
-    pub service_end_date: Option<DateTime<Utc>>, // TODO Should really be Date instead
+    pub service_end_date: Option<DateTime<Utc>>,   // TODO Should really be Date instead
 }
 
 impl InputAssessment {

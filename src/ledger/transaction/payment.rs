@@ -10,9 +10,10 @@ pub struct Payment<'a> {
     payee_service_start_date: Option<DateTime<Utc>>,
     payee_service_end_date: Option<DateTime<Utc>>,
     payee_effective_on: DateTime<Utc>,
-    payee_resolved_on: Option<DateTime<Utc>>,
+    payee_resolved_on: Option<DateTime<Utc>>, // Unused at this time
     previously_paid_amount: USD,
     //payee_discount_amount
+    //payment_reversed_on: Option<DateTime<Utc>>, // TODO: To handle reverals
 }
 
 impl<'a> Payment<'a> {
@@ -27,6 +28,7 @@ impl<'a> Payment<'a> {
         payee_service_end_date: Option<DateTime<Utc>>,
         payee_effective_on: DateTime<Utc>,
         payee_resolved_on: Option<DateTime<Utc>>,
+        //payment_reversed_on: Option<DateTime<Utc>>,
         previously_paid_amount: USD,
     ) -> Payment {
         Payment {
@@ -39,6 +41,7 @@ impl<'a> Payment<'a> {
             payee_service_end_date: payee_service_end_date,
             payee_effective_on: payee_effective_on,
             payee_resolved_on: payee_resolved_on, // Not used at all right now? For credits, which may be an entirely different struct
+            //payment_reversed_on: payment_reversed_on,
             previously_paid_amount: previously_paid_amount,
         }
     }
