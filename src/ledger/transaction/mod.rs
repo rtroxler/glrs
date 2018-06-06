@@ -1,11 +1,11 @@
 extern crate chrono;
 use chrono::prelude::*;
 
-use usd::USD;
-use ledger::general_ledger::GeneralLedger;
 use chart_of_accounts::AccountCode;
-use chart_of_accounts::CashAccount;
 use chart_of_accounts::AccrualAccount;
+use chart_of_accounts::CashAccount;
+use ledger::general_ledger::GeneralLedger;
+use usd::USD;
 
 pub mod assessment;
 pub mod payment;
@@ -23,7 +23,9 @@ pub trait Transaction<'a> {
     fn process_account_code(&self) -> &'a AccountCode;
 
     fn days_in_payee_service_period(&self) -> i64 {
-        let duration = self.payee_service_end_date().unwrap().signed_duration_since(self.payee_service_start_date().unwrap());
+        let duration = self.payee_service_end_date()
+            .unwrap()
+            .signed_duration_since(self.payee_service_start_date().unwrap());
         (duration.to_std().unwrap().as_secs() / 86_400) as i64 + 1
     }
 
@@ -38,30 +40,34 @@ pub trait Transaction<'a> {
 
         let mut already_paid_amount = self.previously_paid_amount().to_pennies();
 
-        (0..self.days_in_payee_service_period()).map(|day| {
-            let mut day_amount = spd;
-            if leftover > 0 {
-                day_amount += 1;
-                leftover -= 1;
-            }
-
-            if already_paid_amount > 0 {
-                if day_amount <= already_paid_amount {
-                    already_paid_amount -= day_amount;
-                    day_amount = 0;
-                } else {
-                    day_amount = already_paid_amount;
-                    already_paid_amount = 0;
+        (0..self.days_in_payee_service_period())
+            .map(|day| {
+                let mut day_amount = spd;
+                if leftover > 0 {
+                    day_amount += 1;
+                    leftover -= 1;
                 }
-            }
 
-            if negative_amount {
-                day_amount = -day_amount;
-            }
+                if already_paid_amount > 0 {
+                    if day_amount <= already_paid_amount {
+                        already_paid_amount -= day_amount;
+                        day_amount = 0;
+                    } else {
+                        day_amount = already_paid_amount;
+                        already_paid_amount = 0;
+                    }
+                }
 
-            (self.payee_service_start_date().unwrap() + chrono::Duration::days(day as i64),
-             USD::from_pennies(day_amount) )
-        }).collect()
+                if negative_amount {
+                    day_amount = -day_amount;
+                }
+
+                (
+                    self.payee_service_start_date().unwrap() + chrono::Duration::days(day as i64),
+                    USD::from_pennies(day_amount),
+                )
+            })
+            .collect()
     }
 
     fn process(&self, gl: &mut GeneralLedger) {
@@ -79,6 +85,4 @@ pub trait Transaction<'a> {
 }
 
 #[cfg(test)]
-mod tests {
-
-}
+mod tests {}

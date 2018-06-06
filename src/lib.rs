@@ -28,7 +28,6 @@ pub extern "C" fn rust_perform(c_ptr: *const libc::c_char) -> *const libc::c_cha
     let input = InputArgs::from_json(&string_arg);
     let input_ledger = input.ledger;
 
-    // TODO: This shouldn't be on ledger, probably
     let chart = chart_of_accounts::ChartOfAccounts::cubesmart();
     let ledger = input_ledger.into_ledger(&chart);
 
